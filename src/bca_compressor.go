@@ -1,48 +1,129 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"time"
 )
 
+var blockSize = 8192
+
+func splitToBlocks(buf []byte) [][]byte {
+	var res [][]byte
+
+	for i := 0; i < int(len(buf)/blockSize); i++ {
+		res = append(res, buf[i*blockSize:i*blockSize+blockSize])
+	}
+
+	// TODO check if it will not produce bug
+	// OR maybe need to fill it with zeros
+	// if len(buf)%blockSize != 0 {
+	// 	res = append(res, buf[len(res)*blockSize:])
+	// }
+
+	return res
+}
+
+// func getMaxSimilarity() {
+
+// }
+
+// [76 111 114 101 109 32  105 112 115 117 109 44 32 100 111 108]
+// [32 105 112 115 97  109 32  97  110 105 109 105 32 110 97 109]
+// [13 10  97  99  99  117 115 97  109 117 115 44 32 118 111 108]
+
+func checkBlocksSolidity(a []byte, b []byte) int {
+	solidity := 0
+	similarity := 0
+
+	for i := 0; i < len(a); i++ {
+		if a[i] == b[i] {
+			similarity++
+
+			if similarity > solidity {
+				solidity = similarity
+			}
+		} else {
+			similarity = 0
+		}
+	}
+
+	return solidity
+}
+
+func currentTime() string {
+	return time.Now().Local().Format("2006-01-02 15:04:05")
+}
+
 func main() {
-	file, _ := os.Open("./assets/test.txt")
+	fmt.Println("# OPEN FILE", currentTime())
+
+	file, _ := os.Open("C:/Users/User/Downloads/Dev.tar")
+	// file, _ := os.Open("./assets/test.txt")
 	defer file.Close()
 
 	buffer := make([]byte, 1024*1024*1024)
-	fileStat, _ := file.Stat()
+	// fileStat, _ := file.Stat()
 
 	// Block to find
-	var refBlock []byte
-	refBlockSize := fileStat.Size() / 2
+	// var refBlock []byte
+	// refBlockMaxSize := fileStat.Size() / 2
 
 	for {
+		fmt.Println("# READ FILE", currentTime())
+
 		bytesNum, err := file.Read(buffer)
 
 		if err == io.EOF {
 			break
 		}
 
-		refBlock = buffer[:refBlockSize]
-		fmt.Println(refBlockSize, buffer[:bytesNum])
+		// TODO check all sizes
+		// mostEffectiveSize := 0
 
-		for i := 0; i < int(refBlockSize); i++ {
-			refBlockWithOffset := refBlock[:len(refBlock)-i]
+		// for size := 0; size < int(refBlockMaxSize); size++ {
+		fmt.Println("# SPLIT BLOCKS", currentTime())
 
-			if bytes.Count(buffer[:bytesNum], refBlockWithOffset) >= 2 {
-				deleteIndex := bytes.LastIndex(buffer[:bytesNum], refBlockWithOffset)
-				before, after, _ := bytes.Cut(buffer[:bytesNum], refBlockWithOffset)
+		blocks := splitToBlocks(buffer[:bytesNum])
 
-				buffer = append(before, after...)
+		fmt.Println("# CHECK SOLIDITY", currentTime())
 
-				// fmt.Println(refBlockWithOffset, deleteIndex)
-				fmt.Println(deleteIndex, buffer, len(buffer))
+		for i := 0; i < len(blocks)-1; i++ {
+			for j := i + 1; j < len(blocks); j++ {
+				solidity := checkBlocksSolidity(blocks[i], blocks[j])
 
-				break
+				if solidity >= 8 {
+					// fmt.Println("REF_BLOCK", blocks[i])
+					// fmt.Println("\tCHECK_BLOCK", solidity, "\t", blocks[j][:16])
+				}
 			}
 		}
+		// }
+
+		// fmt.Println(refBlock, buffer[:bytesNum][i*blockSize+blockSize:])
+
+		// break
+
+		// fmt.Println(blockSimilarity(buffer[:bytesNum][:blockSize], refBlock))
+		// if bytes.Count(buffer[:bytesNum], refBlock) >= 2 {
+		// 	fmt.Println(len(refBlock), refBlock)
+		// }
+
+		// refBlockWithOffset := refBlock[:len(refBlock)-i]
+
+		// if bytes.Count(buffer[:bytesNum], refBlockWithOffset) >= 2 {
+		// 	deleteIndex := bytes.LastIndex(buffer[:bytesNum], refBlockWithOffset)
+		// 	before, after, _ := bytes.Cut(buffer[:bytesNum], refBlockWithOffset)
+
+		// 	buffer = append(before, after...)
+
+		// 	// fmt.Println(refBlockWithOffset, deleteIndex)
+		// 	fmt.Println(deleteIndex, buffer, len(buffer))
+
+		// 	break
+		// }
+		// }
 	}
 }
 
