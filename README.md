@@ -1,2 +1,3 @@
 # bca
- 
+
+Block compression algorithm
